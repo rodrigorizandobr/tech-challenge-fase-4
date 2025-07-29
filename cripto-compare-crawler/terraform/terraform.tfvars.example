@@ -1,0 +1,16 @@
+# Exemplo de arquivo de variáveis do Terraform
+# Copie este arquivo para terraform.tfvars e ajuste os valores
+
+# Região AWS onde os recursos serão criados
+aws_region = "us-east-1"
+
+# Ambiente de deploy
+environment = "production"
+
+# Nome do projeto
+project_name = "binance-crawler"
+
+# Configurações opcionais
+# schedule_expression = "rate(1 hour)"  # Frequência de execução
+# lambda_timeout = 300                  # Timeout do Lambda em segundos
+# lambda_memory = 512                   # Memória do Lambda em MB 
