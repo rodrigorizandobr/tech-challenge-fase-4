@@ -1,0 +1,15 @@
+# Dependências principais
+pandas>=2.2.0           # manipulação de dados
+numpy>=1.26.0           # computação numérica
+scikit-learn>=1.5.0     # modelos de ML e utilitários
+s3fs>=2024.3.0          # acesso a S3 via pandas
+pyarrow>=16.0.0         # leitura/gravação Parquet
+
+# Visualização (opcional para notebooks)
+matplotlib>=3.9.0
+seaborn>=0.13.0
+plotly>=5.21.0          # inclui plotly.express
+
+# Serialização e AWS SDK
+joblib>=1.4.0
+boto3>=1.34.0
