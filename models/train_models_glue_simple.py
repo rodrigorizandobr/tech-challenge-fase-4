@@ -16,14 +16,16 @@ from sklearn.metrics import (
     mean_absolute_error, mean_squared_error, accuracy_score,
     f1_score, roc_auc_score
 )
+from awsglue.utils import getResolvedOptions
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# ---------- Configurações ----------
-BUCKET          = "criptos-data"
-FEATURES_KEY    = "features/cripto_features_latest.parquet"   # altere se precisar
-LOCAL_FEATURES  = "/tmp/cripto_features.parquet"              # cache local (Lambda / container)
-ARTIFACTS_DIR   = Path("artifacts")
+# ---------- Configurações do Glue ----------
+args = getResolvedOptions(sys.argv, ['BUCKET_NAME'])
+BUCKET = args['BUCKET_NAME']
+FEATURES_KEY = "cripto_features.csv"
+LOCAL_FEATURES = "/tmp/cripto_features.csv"
+ARTIFACTS_DIR = Path("artifacts")
 ARTIFACTS_DIR.mkdir(exist_ok=True, parents=True)
 
 # ---------- Utilidades ----------
@@ -37,7 +39,7 @@ def time_stamp():
 # ---------- 1) Leitura do dataset ----------
 print("Baixando dataset de features...")
 download_from_s3(BUCKET, FEATURES_KEY, LOCAL_FEATURES)
-df = pd.read_parquet(LOCAL_FEATURES)  # se for csv mude para read_csv
+df = pd.read_csv(LOCAL_FEATURES, sep="|")  # Corrigido para usar separador '|'
 print("Linhas lidas:", len(df))
 
 # ---------- 2) Targets & seleção de features ----------
@@ -62,7 +64,7 @@ y_clf = df_model["direction_next"]
 # ---------- 3) Pré‑processamento ----------
 cat_transformer = Pipeline([
     ("imputer", SimpleImputer(strategy="most_frequent")),
-    ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+    ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False))
 ])
 
 num_transformer_tree = Pipeline([
@@ -144,14 +146,23 @@ final_models = {
     "classifier_log":clf_log.fit(X, y_clf)
 }
 
-# ---------- 7) Salvando artefatos ----------
+# ---------- 7) Salvando artefatos no S3 ----------
 ts = time_stamp()
-paths = []
-for name, mdl in final_models.items():
-    p = ARTIFACTS_DIR / f"{name}_{ts}.joblib"
-    joblib.dump(mdl, p, compress=("xz", 3))
-    paths.append(p)
+s3 = boto3.client("s3")
 
-print("Artefatos salvos:")
-for p in paths:
-    print("  •", p)
+for name, mdl in final_models.items():
+    # Salva localmente primeiro
+    local_path = ARTIFACTS_DIR / f"{name}_{ts}.joblib"
+    joblib.dump(mdl, local_path, compress=("xz", 3))
+    
+    # Upload para S3
+    s3_key = f"models/{name}_{ts}.joblib"
+    s3.upload_file(str(local_path), BUCKET, s3_key)
+    print(f"✅ Modelo salvo: {s3_key}")
+
+# Salva arquivo de controle
+latest_content = f"models/regressor_rf_{ts}.joblib\n{ts}\n5"
+s3.put_object(Bucket=BUCKET, Key="models/latest_models.txt", Body=latest_content)
+print(f"📋 Controle atualizado: models/latest_models.txt")
+
+print("🎉 Treinamento concluído com sucesso!")
