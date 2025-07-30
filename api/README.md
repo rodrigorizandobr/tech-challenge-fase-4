@@ -11,6 +11,70 @@ API para predições de criptomoedas usando modelos de Machine Learning **já tr
 - **Documentação automática** com Swagger/OpenAPI
 - **Reload de modelos** sem reiniciar a API
 
+## 🎭 Mock do Heterium (HET)
+
+A API inclui um **mock temporário** para a criptomoeda **Heterium (HET)** que gera dados simulados para testes e demonstração.
+
+### Características do Mock HET
+
+- **Dados simulados**: 30 dias de dados históricos
+- **Preço base**: $150 USD
+- **Volatilidade**: 15%
+- **Indicadores técnicos**: RSI, MACD, Bollinger Bands, etc.
+- **Features completas**: Mais de 80 indicadores técnicos
+
+### Como Usar o Mock
+
+```bash
+# Teste rápido do mock HET
+cd api
+./test-het-quick.sh
+
+# Teste completo com Python
+python test_het_mock.py http://localhost:8000
+
+# Teste manual
+curl http://localhost:8000/symbol/HET
+```
+
+### Exemplo de Resposta
+
+```json
+{
+  "ativo": "HET",
+  "timestamp": "2025-01-27T10:30:00",
+  "modelos": {
+    "regressor_gbr": {
+      "predicao": 152.45,
+      "modelo": "regressor_gbr",
+      "tipo": "regressor",
+      "versao": "20250729-2130"
+    },
+    "classifier_log": {
+      "predicao": 1,
+      "probabilidade": 0.75,
+      "modelo": "classifier_log",
+      "tipo": "classifier",
+      "versao": "20250729-2130"
+    }
+  },
+  "total_modelos": 2
+}
+```
+
+### Logs do Mock
+
+```
+🎭 Usando dados mock para Heterium (HET)
+🎭 Criando dados mock para Heterium...
+✅ Dados mock criados para HET: 30 registros, 85 colunas
+🔧 Preparando features de 30 registros...
+📈 Features numéricas: 84 colunas
+✅ Features preparadas: 84 colunas
+🔮 Fazendo predição com regressor_gbr (tipo: regressor)
+✅ Predição regressora: 152.45
+```
+
 ## 📋 Pré-requisitos
 
 - Python 3.9+

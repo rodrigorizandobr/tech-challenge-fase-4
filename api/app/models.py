@@ -19,6 +19,11 @@ class PredictionEngine:
             
             logger.info(f"🔍 Buscando dados para {symbol} no S3...")
             
+            # Mock temporário para Heterium (HET)
+            if symbol.upper() == "HET":
+                logger.info("🎭 Usando dados mock para Heterium (HET)")
+                return self._create_het_mock_data()
+            
             # Lista arquivos de dados para o símbolo
             response = s3_client.list_objects_v2(
                 Bucket=bucket_name,
@@ -78,6 +83,165 @@ class PredictionEngine:
         except Exception as e:
             logger.error(f"❌ Erro ao obter dados para {symbol}: {e}")
             return pd.DataFrame()
+    
+    def _create_het_mock_data(self) -> pd.DataFrame:
+        """Cria dados mock para Heterium (HET)"""
+        import numpy as np
+        from datetime import datetime, timedelta
+        
+        logger.info("🎭 Criando dados mock para Heterium...")
+        
+        # Gera dados dos últimos 30 dias
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
+        dates = pd.date_range(start=start_date, end=end_date, freq='D')
+        
+        # Dados base para Heterium
+        base_price = 150.0  # Preço base em USD
+        volatility = 0.15   # Volatilidade de 15%
+        
+        # Gera dados simulados
+        np.random.seed(42)  # Para reprodutibilidade
+        
+        data = []
+        current_price = base_price
+        
+        for i, date in enumerate(dates):
+            # Simula movimento de preço
+            price_change = np.random.normal(0, volatility)
+            current_price = current_price * (1 + price_change)
+            
+            # Calcula outros indicadores
+            volume = np.random.uniform(1000000, 5000000)
+            market_cap = current_price * 10000000  # 10M tokens em circulação
+            
+            # Indicadores técnicos simulados
+            sma_20 = current_price * (1 + np.random.normal(0, 0.05))
+            rsi = np.random.uniform(30, 70)
+            macd = np.random.normal(0, 0.1)
+            
+            # Features adicionais
+            price_change_24h = np.random.normal(0, 0.1)
+            volume_change_24h = np.random.normal(0, 0.2)
+            
+            data.append({
+                'data': date.strftime('%Y-%m-%d'),
+                'ativo': 'HET',
+                'timestamp': date.isoformat(),
+                'fechamento': round(current_price, 2),
+                'abertura': round(current_price * (1 + np.random.normal(0, 0.02)), 2),
+                'maximo': round(current_price * (1 + abs(np.random.normal(0, 0.03))), 2),
+                'minimo': round(current_price * (1 - abs(np.random.normal(0, 0.03))), 2),
+                'volume': round(volume, 0),
+                'market_cap': round(market_cap, 0),
+                'price_change_24h': round(price_change_24h, 4),
+                'volume_change_24h': round(volume_change_24h, 4),
+                'sma_20': round(sma_20, 2),
+                'rsi': round(rsi, 2),
+                'macd': round(macd, 4),
+                'volatility': round(volatility * 100, 2),
+                'price_momentum': round(np.random.normal(0, 0.1), 4),
+                'volume_momentum': round(np.random.normal(0, 0.2), 4),
+                'trend_strength': round(np.random.uniform(0, 1), 4),
+                'support_level': round(current_price * 0.9, 2),
+                'resistance_level': round(current_price * 1.1, 2),
+                'bollinger_upper': round(current_price * 1.05, 2),
+                'bollinger_lower': round(current_price * 0.95, 2),
+                'stochastic_k': round(np.random.uniform(0, 100), 2),
+                'stochastic_d': round(np.random.uniform(0, 100), 2),
+                'williams_r': round(np.random.uniform(-100, 0), 2),
+                'cci': round(np.random.normal(0, 100), 2),
+                'adx': round(np.random.uniform(0, 100), 2),
+                'atr': round(current_price * 0.02, 4),
+                'obv': round(np.random.uniform(1000000, 5000000), 0),
+                'mfi': round(np.random.uniform(0, 100), 2),
+                'roc': round(np.random.normal(0, 5), 2),
+                'momentum': round(np.random.normal(0, 0.1), 4),
+                'williams_alligator_blue': round(current_price * 0.98, 2),
+                'williams_alligator_red': round(current_price * 1.02, 2),
+                'williams_alligator_green': round(current_price * 1.01, 2),
+                'fractal_high': round(current_price * 1.03, 2),
+                'fractal_low': round(current_price * 0.97, 2),
+                'gator_jaw': round(current_price * 0.99, 2),
+                'gator_teeth': round(current_price * 1.005, 2),
+                'gator_lips': round(current_price * 1.015, 2),
+                'awesome_oscillator': round(np.random.normal(0, 0.1), 4),
+                'accelerator_oscillator': round(np.random.normal(0, 0.05), 4),
+                'force_index': round(np.random.normal(0, 1000000), 0),
+                'ease_of_movement': round(np.random.normal(0, 0.1), 4),
+                'commodity_channel_index': round(np.random.normal(0, 100), 2),
+                'detrended_price_oscillator': round(np.random.normal(0, 0.1), 4),
+                'klinger_oscillator': round(np.random.normal(0, 1000000), 0),
+                'money_flow_index': round(np.random.uniform(0, 100), 2),
+                'on_balance_volume': round(np.random.uniform(1000000, 5000000), 0),
+                'percentage_price_oscillator': round(np.random.normal(0, 0.1), 4),
+                'percentage_volume_oscillator': round(np.random.normal(0, 0.2), 4),
+                'price_rate_of_change': round(np.random.normal(0, 5), 2),
+                'relative_strength_index': round(rsi, 2),
+                'stochastic_oscillator_k': round(np.random.uniform(0, 100), 2),
+                'stochastic_oscillator_d': round(np.random.uniform(0, 100), 2),
+                'triple_exponential_average': round(current_price * 1.01, 2),
+                'ultimate_oscillator': round(np.random.uniform(0, 100), 2),
+                'williams_percent_r': round(np.random.uniform(-100, 0), 2),
+                'average_true_range': round(current_price * 0.02, 4),
+                'average_directional_index': round(np.random.uniform(0, 100), 2),
+                'commodity_channel_index': round(np.random.normal(0, 100), 2),
+                'directional_movement_index': round(np.random.uniform(0, 100), 2),
+                'minus_directional_movement': round(np.random.uniform(0, 100), 2),
+                'plus_directional_movement': round(np.random.uniform(0, 100), 2),
+                'minus_directional_indicator': round(np.random.uniform(0, 100), 2),
+                'plus_directional_indicator': round(np.random.uniform(0, 100), 2),
+                'parabolic_sar': round(current_price * 1.02, 2),
+                'trend_intensity_index': round(np.random.uniform(0, 100), 2),
+                'mass_index': round(np.random.uniform(0, 100), 2),
+                'vortex_indicator_plus': round(np.random.uniform(0, 100), 2),
+                'vortex_indicator_minus': round(np.random.uniform(0, 100), 2),
+                'kst': round(np.random.normal(0, 0.1), 4),
+                'kst_signal': round(np.random.normal(0, 0.1), 4),
+                'ichimoku_a': round(current_price * 1.01, 2),
+                'ichimoku_b': round(current_price * 0.99, 2),
+                'ichimoku_base': round(current_price, 2),
+                'ichimoku_conversion': round(current_price * 1.005, 2),
+                'ichimoku_span_a': round(current_price * 1.015, 2),
+                'ichimoku_span_b': round(current_price * 0.985, 2),
+                'ichimoku_leading_span_a': round(current_price * 1.025, 2),
+                'ichimoku_leading_span_b': round(current_price * 0.975, 2),
+                'ichimoku_lagging_span': round(current_price * 0.995, 2),
+                'aroon_up': round(np.random.uniform(0, 100), 2),
+                'aroon_down': round(np.random.uniform(0, 100), 2),
+                'aroon_oscillator': round(np.random.uniform(-100, 100), 2),
+                'balance_of_power': round(np.random.normal(0, 0.1), 4),
+                'chaikin_money_flow': round(np.random.normal(0, 0.1), 4),
+                'chaikin_oscillator': round(np.random.normal(0, 1000000), 0),
+                'donchian_channel_high': round(current_price * 1.05, 2),
+                'donchian_channel_low': round(current_price * 0.95, 2),
+                'donchian_channel_mid': round(current_price, 2),
+                'keltner_channel_high': round(current_price * 1.03, 2),
+                'keltner_channel_low': round(current_price * 0.97, 2),
+                'keltner_channel_mid': round(current_price, 2),
+                'ulcer_index': round(np.random.uniform(0, 10), 4),
+                'guppy_multiple_moving_average_fast': round(current_price * 1.01, 2),
+                'guppy_multiple_moving_average_slow': round(current_price * 0.99, 2),
+                'hull_moving_average': round(current_price * 1.005, 2),
+                'kaufman_adaptive_moving_average': round(current_price * 1.002, 2),
+                'mcclellan_oscillator': round(np.random.normal(0, 100), 2),
+                'mcclellan_summation_index': round(np.random.normal(0, 1000), 2),
+                'mcclellan_ratio': round(np.random.uniform(0, 2), 4),
+                'mcclellan_breadth_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_oscillator_ratio': round(np.random.uniform(0, 2), 4),
+                'mcclellan_summation_index_ratio': round(np.random.uniform(0, 2), 4),
+                'mcclellan_breadth_thrust_ratio': round(np.random.uniform(0, 2), 4),
+                'mcclellan_oscillator_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_summation_index_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_breadth_thrust_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_oscillator_ratio_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_summation_index_ratio_thrust': round(np.random.uniform(0, 1), 4),
+                'mcclellan_breadth_thrust_ratio_thrust': round(np.random.uniform(0, 1), 4)
+            })
+        
+        df = pd.DataFrame(data)
+        logger.info(f"✅ Dados mock criados para HET: {len(df)} registros, {len(df.columns)} colunas")
+        return df
     
     def prepare_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Prepara as features para predição"""

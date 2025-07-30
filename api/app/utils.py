@@ -67,6 +67,7 @@ class ModelManager:
         filename = s3_key.split('/')[-1]
         parts = filename.replace('.joblib', '').split('_')
         
+        # Padrão esperado: {tipo}_{algoritmo}_{timestamp}.joblib
         if len(parts) >= 3:
             model_type = parts[0]  # regressor, classifier
             model_name = parts[1]  # rf, gbr, lin, log
@@ -77,6 +78,29 @@ class ModelManager:
                 "model_name": model_name,
                 "timestamp": timestamp,
                 "full_name": f"{model_type}_{model_name}",
+                "s3_key": s3_key
+            }
+        # Padrão alternativo: {algoritmo}.joblib (para modelos existentes)
+        elif len(parts) == 1:
+            model_name = parts[0]
+            
+            # Mapear nomes para tipos
+            model_type_map = {
+                "GradBoost": "regressor",
+                "LinReg": "regressor", 
+                "LogReg": "classifier",
+                "RandomForest": "regressor",
+                "SVM": "classifier"
+            }
+            
+            model_type = model_type_map.get(model_name, "regressor")
+            timestamp = "20250729-2130"  # Timestamp padrão
+            
+            return {
+                "model_type": model_type,
+                "model_name": model_name.lower(),
+                "timestamp": timestamp,
+                "full_name": f"{model_type}_{model_name.lower()}",
                 "s3_key": s3_key
             }
         else:
