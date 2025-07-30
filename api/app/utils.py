@@ -19,6 +19,7 @@ class ModelManager:
     def list_model_files(self) -> List[str]:
         """Lista todos os arquivos .joblib na pasta models do S3"""
         try:
+            logger.info(f"Listando modelos no bucket {self.bucket_name}...")
             response = self.s3_client.list_objects_v2(
                 Bucket=self.bucket_name,
                 Prefix="models/",
@@ -30,6 +31,7 @@ class ModelManager:
                 for obj in response['Contents']:
                     if obj['Key'].endswith('.joblib'):
                         model_files.append(obj['Key'])
+                        logger.info(f"Encontrado modelo: {obj['Key']}")
             
             logger.info(f"Encontrados {len(model_files)} arquivos de modelo")
             return model_files
@@ -41,8 +43,9 @@ class ModelManager:
     def download_model(self, s3_key: str, local_path: str) -> bool:
         """Download de um modelo do S3"""
         try:
+            logger.info(f"Baixando modelo: {s3_key}")
             self.s3_client.download_file(self.bucket_name, s3_key, local_path)
-            logger.info(f"Modelo baixado: {s3_key}")
+            logger.info(f"Modelo baixado com sucesso: {s3_key}")
             return True
         except Exception as e:
             logger.error(f"Erro ao baixar modelo {s3_key}: {e}")
@@ -51,8 +54,9 @@ class ModelManager:
     def load_model(self, local_path: str) -> Any:
         """Carrega um modelo do arquivo local"""
         try:
+            logger.info(f"Carregando modelo: {local_path}")
             model = joblib.load(local_path)
-            logger.info(f"Modelo carregado: {local_path}")
+            logger.info(f"Modelo carregado com sucesso: {local_path}")
             return model
         except Exception as e:
             logger.error(f"Erro ao carregar modelo {local_path}: {e}")
@@ -75,22 +79,26 @@ class ModelManager:
                 "full_name": f"{model_type}_{model_name}",
                 "s3_key": s3_key
             }
-        return {}
+        else:
+            logger.warning(f"Nome de arquivo não segue padrão esperado: {filename}")
+            return {}
     
     def load_all_models(self) -> Dict[str, Any]:
         """Carrega todos os modelos do S3 na memória"""
-        logger.info("Iniciando carregamento de todos os modelos...")
+        logger.info("🚀 Iniciando carregamento de todos os modelos...")
         
         model_files = self.list_model_files()
         if not model_files:
-            logger.warning("Nenhum arquivo de modelo encontrado!")
+            logger.warning("⚠️ Nenhum arquivo de modelo encontrado!")
             return {}
         
         loaded_models = {}
         
         for s3_key in model_files:
+            logger.info(f"Processando modelo: {s3_key}")
             model_info = self.extract_model_info(s3_key)
             if not model_info:
+                logger.warning(f"Pulando modelo com formato inválido: {s3_key}")
                 continue
                 
             model_name = model_info["full_name"]
@@ -107,14 +115,20 @@ class ModelManager:
                         "loaded_at": datetime.utcnow().isoformat()
                     }
                     self.model_versions[model_name] = model_info["timestamp"]
+                    logger.info(f"✅ Modelo carregado: {model_name}")
                     
                     # Remove arquivo local
                     try:
                         os.remove(local_path)
-                    except:
-                        pass
+                        logger.debug(f"Arquivo temporário removido: {local_path}")
+                    except Exception as e:
+                        logger.warning(f"Erro ao remover arquivo temporário {local_path}: {e}")
+                else:
+                    logger.error(f"❌ Falha ao carregar modelo: {model_name}")
+            else:
+                logger.error(f"❌ Falha ao baixar modelo: {s3_key}")
         
-        logger.info(f"Carregados {len(loaded_models)} modelos com sucesso")
+        logger.info(f"🎉 Carregados {len(loaded_models)} modelos com sucesso")
         self.models = loaded_models
         return loaded_models
     

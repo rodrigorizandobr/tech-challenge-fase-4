@@ -144,17 +144,20 @@ final_models = {
 s3 = boto3.client("s3")
 
 for name, mdl in final_models.items():
-    # Salva localmente primeiro
-    local_path = ARTIFACTS_DIR / f"{name}.joblib"
+    # Gera timestamp para o modelo
+    timestamp = time_stamp()
+    
+    # Salva localmente primeiro com timestamp
+    local_path = ARTIFACTS_DIR / f"{name}_{timestamp}.joblib"
     joblib.dump(mdl, local_path, compress=("xz", 3))
     
-    # Upload para S3
-    s3_key = f"models/{name}.joblib"
+    # Upload para S3 com timestamp
+    s3_key = f"models/{name}_{timestamp}.joblib"
     s3.upload_file(str(local_path), BUCKET, s3_key)
     print(f"✅ Modelo salvo: {s3_key}")
 
-# Salva arquivo de controle
-latest_content = f"models/regressor_rf.joblib"
+# Salva arquivo de controle com informações dos modelos
+latest_content = f"models/regressor_gbr_{time_stamp()}.joblib\nmodels/regressor_lin_{time_stamp()}.joblib\nmodels/classifier_log_{time_stamp()}.joblib"
 s3.put_object(Bucket=BUCKET, Key="models/latest_models.txt", Body=latest_content)
 print(f"📋 Controle atualizado: models/latest_models.txt")
 

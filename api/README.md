@@ -1,231 +1,307 @@
-# 🚀 Cripto Prediction API
+# API Cripto Prediction
 
-API FastAPI para predições de criptomoedas usando modelos ML treinados no AWS Glue.
+API para predições de criptomoedas usando modelos de Machine Learning **já treinados** e salvos no S3.
 
-## 📋 Funcionalidades
+## 🚀 Funcionalidades
 
-- **Carregamento automático** de modelos .joblib do S3
-- **Predições em tempo real** para qualquer ativo
+- **Leitura automática de modelos** do S3 na inicialização
+- **Predições em tempo real** usando dados mais recentes
+- **Múltiplos tipos de modelo**: regressores e classificadores
 - **Health checks** e monitoramento
-- **Deploy no EKS** com alta disponibilidade
-- **Documentação automática** (Swagger/OpenAPI)
+- **Documentação automática** com Swagger/OpenAPI
+- **Reload de modelos** sem reiniciar a API
+
+## 📋 Pré-requisitos
+
+- Python 3.9+
+- AWS CLI configurado
+- Acesso ao bucket S3 `criptos-data`
+- **Modelos já treinados** salvos no S3 (pasta `models/`)
+
+## 🛠️ Instalação e Configuração
+
+### 1. Configurar AWS CLI
+
+```bash
+aws configure
+```
+
+Configure suas credenciais AWS com acesso ao bucket `criptos-data`.
+
+### 2. Verificar Modelos Existentes no S3
+
+```bash
+# Verificar se o bucket existe
+aws s3 ls s3://criptos-data
+
+# Verificar modelos disponíveis
+aws s3 ls s3://criptos-data/models/ --recursive
+```
+
+### 3. Deploy da API (Apenas Leitura)
+
+```bash
+# Navegar para a pasta da API
+cd api
+
+# Executar deploy (apenas leitura de modelos existentes)
+./deploy-only.sh
+```
+
+### 4. Deploy Local Manual
+
+```bash
+# Navegar para a pasta da API
+cd api
+
+# Executar deploy local
+./deploy-local.sh
+```
+
+### 5. Deploy com Docker
+
+```bash
+# Build da imagem
+docker build -t cripto-prediction-api .
+
+# Executar container
+docker run -p 8000:8000 cripto-prediction-api
+```
+
+### 6. Deploy no Kubernetes
+
+```bash
+# Deploy completo
+./deploy.sh
+
+# Deploy simplificado
+./deploy-simple.sh
+```
+
+## 📊 Endpoints
+
+### Health Check
+```
+GET /health
+```
+
+### Listar Modelos
+```
+GET /models
+```
+
+### Fazer Predição
+```
+GET /symbol/{ativo}
+```
+
+Exemplo: `GET /symbol/BTC`
+
+### Recarregar Modelos
+```
+GET /reload
+```
+
+## 🔧 Estrutura dos Modelos
+
+A API **lê** modelos salvos no S3 com o seguinte padrão:
+
+```
+s3://criptos-data/models/
+├── regressor_gbr_20250729-2130.joblib
+├── regressor_lin_20250729-2130.joblib
+└── classifier_log_20250729-2130.joblib
+```
+
+### Formato do Nome dos Modelos
+
+- `{tipo}_{algoritmo}_{timestamp}.joblib`
+- `tipo`: `regressor` ou `classifier`
+- `algoritmo`: `gbr`, `lin`, `rf`, `log`, etc.
+- `timestamp`: formato `YYYYMMDD-HHMMSS`
+
+## 🧪 Testes
+
+### Teste Automático
+
+```bash
+# Instalar requests se necessário
+pip install requests
+
+# Executar testes
+python test_api.py http://localhost:8000
+```
+
+### Teste Manual
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Listar modelos
+curl http://localhost:8000/models
+
+# Fazer predição
+curl http://localhost:8000/symbol/BTC
+
+# Recarregar modelos
+curl http://localhost:8000/reload
+```
+
+## 📝 Logs e Debug
+
+A API possui logs detalhados para debug:
+
+```bash
+# Ver logs da API
+docker logs <container_id>
+
+# Ou se rodando localmente, os logs aparecem no terminal
+```
+
+### Logs Importantes
+
+- `🚀 Iniciando carregamento de todos os modelos...`
+- `✅ Modelo carregado: {nome_do_modelo}`
+- `🔮 Fazendo predição com {modelo}`
+- `✅ Predição regressora: {valor}`
+
+## 🔍 Troubleshooting
+
+### Problema: "Nenhum modelo carregado"
+
+**Solução:**
+1. Verificar se os modelos existem no S3:
+   ```bash
+   aws s3 ls s3://criptos-data/models/ --recursive
+   ```
+
+2. Verificar se os nomes seguem o padrão esperado:
+   ```
+   regressor_gbr_20250729-2130.joblib
+   ```
+
+3. Verificar permissões AWS:
+   ```bash
+   aws sts get-caller-identity
+   ```
+
+### Problema: "Nenhum dado encontrado para o símbolo"
+
+**Solução:**
+1. Verificar se existem dados no S3:
+   ```bash
+   aws s3 ls s3://criptos-data/data/BTC/
+   ```
+
+2. Verificar formato dos dados (CSV com colunas numéricas)
+
+### Problema: "Erro na predição"
+
+**Solução:**
+1. Verificar se as features estão corretas
+2. Verificar se o modelo foi treinado com as mesmas features
+3. Verificar logs detalhados da API
+
+## 📚 Documentação da API
+
+Acesse a documentação interativa em:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
 ## 🏗️ Arquitetura
 
 ```
-EKS Cluster → FastAPI Pods → S3 Models → Predictions
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   FastAPI App   │    │   ModelManager  │    │   S3 Bucket     │
+│                 │    │                 │    │                 │
+│ - /health       │◄──►│ - Load Models   │◄──►│ - models/*.joblib│
+│ - /models       │    │ - Cache Models  │    │ - data/*.csv    │
+│ - /symbol/{id}  │    │ - Predict       │    │                 │
+│ - /reload       │    └─────────────────┘    └─────────────────┘
+└─────────────────┘
 ```
 
-### Componentes:
-- **FastAPI**: Framework web para a API
-- **EKS**: Kubernetes gerenciado pela AWS
-- **S3**: Armazenamento dos modelos treinados
-- **Docker**: Containerização da aplicação
+## 🔄 Fluxo de Dados
 
-## 📁 Estrutura do Projeto
+1. **Inicialização**: API carrega modelos existentes do S3
+2. **Requisição**: Cliente solicita predição para um símbolo
+3. **Dados**: API busca dados mais recentes do S3
+4. **Features**: Prepara features dos dados
+5. **Predição**: Executa predição com todos os modelos carregados
+6. **Resposta**: Retorna predições formatadas
 
-```
-api/
-├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI app + endpoints
-│   ├── models.py        # Engine de predições
-│   └── utils.py         # Gerenciamento de modelos
-├── k8s/
-│   └── deployment.yaml  # Kubernetes deployment
-├── terraform/
-│   ├── main.tf         # Infraestrutura EKS
-│   ├── variables.tf    # Variáveis
-│   └── outputs.tf      # Outputs
-├── Dockerfile
-├── requirements.txt
-└── README.md
-```
+## 📈 Monitoramento
 
-## 🚀 Endpoints
+### Métricas Importantes
 
-### 1. **GET /** - Root
-```json
-{
-  "message": "Cripto Prediction API",
-  "version": "1.0.0",
-  "docs": "/docs",
-  "health": "/health"
-}
-```
+- **Modelos carregados**: Número de modelos em memória
+- **Tempo de resposta**: Latência das predições
+- **Taxa de erro**: Predições que falharam
+- **Uso de memória**: Consumo de RAM dos modelos
 
-### 2. **GET /health** - Health Check
-```json
+### Health Checks
+
+```bash
+# Verificar status
+curl http://localhost:8000/health
+
+# Resposta esperada:
 {
   "status": "healthy",
   "models_loaded": true,
-  "total_models": 5,
-  "models": ["regressor_rf", "regressor_gbr", "regressor_lin", "classifier_rf", "classifier_log"],
-  "versions": {
-    "regressor_rf": "20250729-2130",
-    "classifier_rf": "20250729-2130"
-  }
+  "total_models": 3,
+  "models": ["regressor_gbr", "regressor_lin", "classifier_log"],
+  "versions": {"regressor_gbr": "20250729-2130"}
 }
 ```
 
-### 3. **GET /models** - Lista Modelos
-```json
-{
-  "total_models": 5,
-  "models": ["regressor_rf", "regressor_gbr", "regressor_lin", "classifier_rf", "classifier_log"],
-  "versions": {
-    "regressor_rf": "20250729-2130"
-  },
-  "last_loaded": "2025-07-29T21:30:00Z"
-}
-```
+## 🚀 Deploy em Produção
 
-### 4. **GET /symbol/{ativo}** - Predições
-```json
-{
-  "ativo": "BTC",
-  "timestamp": "2025-07-29T21:30:00Z",
-  "modelos": {
-    "regressor_rf": {
-      "predicao": 45000.50,
-      "modelo": "regressor_rf",
-      "tipo": "regressor",
-      "versao": "20250729-2130"
-    },
-    "classifier_rf": {
-      "predicao": 1,
-      "probabilidade": 0.75,
-      "modelo": "classifier_rf",
-      "tipo": "classifier",
-      "versao": "20250729-2130"
-    }
-  },
-  "total_modelos": 5
-}
-```
+### Variáveis de Ambiente
 
-### 5. **GET /reload** - Recarregar Modelos
-```json
-{
-  "message": "Modelos recarregados com sucesso",
-  "total_models": 5,
-  "models": ["regressor_rf", "regressor_gbr", "regressor_lin", "classifier_rf", "classifier_log"]
-}
-```
-
-## 🛠️ Deploy
-
-### 1. **Build da Imagem Docker**
 ```bash
-cd api
-docker build -t cripto-prediction-api:latest .
+export AWS_DEFAULT_REGION=us-east-1
+export BUCKET_NAME=criptos-data
+export LOG_LEVEL=INFO
 ```
 
-### 2. **Deploy no EKS**
-```bash
-# Configurar kubectl
-aws eks update-kubeconfig --region us-east-1 --name cripto-prediction-cluster
+### Kubernetes
 
+```bash
 # Aplicar deployment
 kubectl apply -f k8s/deployment.yaml
+
+# Aplicar ingress
+kubectl apply -f k8s/ingress.yaml
 
 # Verificar status
 kubectl get pods
 kubectl get services
+kubectl get ingress
 ```
 
-### 3. **Terraform (Infraestrutura)**
+### Docker
+
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
+# Build
+docker build -t cripto-prediction-api .
+
+# Run
+docker run -p 8000:8000 \
+  -e AWS_DEFAULT_REGION=us-east-1 \
+  -e BUCKET_NAME=criptos-data \
+  cripto-prediction-api
 ```
 
-## 🔧 Configuração
+## 🤝 Contribuição
 
-### Variáveis de Ambiente:
-- `AWS_DEFAULT_REGION`: Região AWS (us-east-1)
-- `BUCKET_NAME`: Nome do bucket S3 (criptos-data)
+1. Fork o projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
 
-### Recursos Kubernetes:
-- **CPU**: 500m request, 1000m limit
-- **Memory**: 2Gi request, 4Gi limit
-- **Replicas**: 2 pods para alta disponibilidade
+## 📄 Licença
 
-## 📊 Monitoramento
-
-### Health Checks:
-- **Liveness**: `/health` a cada 30s
-- **Readiness**: `/health` a cada 10s
-- **Initial Delay**: 60s para liveness, 30s para readiness
-
-### Logs:
-```bash
-kubectl logs -f deployment/cripto-prediction-api
-```
-
-### Métricas:
-- Modelos carregados
-- Tempo de resposta das predições
-- Erros de predição
-
-## 🔒 Segurança
-
-- **IAM Roles**: Acesso específico ao S3
-- **Non-root user**: Container roda como usuário não-root
-- **Resource limits**: Limites de CPU/memory
-- **Health checks**: Monitoramento automático
-
-## 🚀 Uso
-
-### Exemplo de Predição:
-```bash
-curl "http://your-api-endpoint/symbol/BTC"
-```
-
-### Verificar Status:
-```bash
-curl "http://your-api-endpoint/health"
-```
-
-### Documentação Interativa:
-```
-http://your-api-endpoint/docs
-```
-
-## 📈 Escalabilidade
-
-- **Horizontal**: Múltiplas réplicas no EKS
-- **Vertical**: Ajuste de recursos conforme necessário
-- **Auto-scaling**: Baseado em CPU/memory
-- **Load balancing**: Distribuição automática de carga
-
-## 🔄 Atualizações
-
-### Rolling Update:
-```bash
-kubectl set image deployment/cripto-prediction-api cripto-prediction-api=new-image:tag
-```
-
-### Rollback:
-```bash
-kubectl rollout undo deployment/cripto-prediction-api
-```
-
-## 🐛 Troubleshooting
-
-### Modelos não carregam:
-1. Verificar permissões S3
-2. Verificar logs do pod
-3. Verificar se arquivos existem no bucket
-
-### API não responde:
-1. Verificar health check
-2. Verificar recursos (CPU/memory)
-3. Verificar conectividade de rede
-
-### Predições com erro:
-1. Verificar formato dos dados de entrada
-2. Verificar se modelos estão carregados
-3. Verificar logs de erro 
+Este projeto está sob a licença MIT. 
