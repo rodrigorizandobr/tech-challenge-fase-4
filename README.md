@@ -136,11 +136,7 @@ aws s3 ls s3://criptos-data/models/
 
 ### 📊 Features Utilizadas
 
-- **Indicadores Técnicos**: RSI, MACD, Bollinger Bands
-- **Médias Móveis**: SMA, EMA, Hull Moving Average
-- **Osciladores**: Stochastic, Williams %R, CCI
-- **Volumes**: OBV, Volume Momentum
-- **Tendências**: ADX, Momentum, ROC
+Momento de preço, tendência e médias moveis, volatividade, estatísticas robustas e altliers, Candle Anatomy, Risco&Drawdown
 
 ## 🌐 API (Predições)
 
@@ -283,4 +279,8 @@ terraform apply
 cd api
 ./deploy-local.sh
 ```
- IMAGEM DA ARQUITETURA NA RAIZ DO REPOSITÓRIO
+### IMAGEM DA ARQUITETURA NA RAIZ DO REPOSITÓRIO
+
+### LINK do Vídeo no YOUTUBE
+
+[![Assista o vídeo](https://img.youtube.com/vi/9Tf_BI6rDDs/maxresdefault.jpg)](https://www.youtube.com/watch?v=9Tf_BI6rDDs)
