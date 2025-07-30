@@ -154,7 +154,7 @@ resource "aws_glue_job" "model_training" {
   role_arn     = aws_iam_role.glue_role.arn
   worker_type  = "Standard"
   number_of_workers = 2
-  timeout      = 60
+  timeout      = 360
 
   command {
     script_location = "s3://${data.aws_s3_bucket.cripto_data.bucket}/scripts/train_models_glue_simple.py"

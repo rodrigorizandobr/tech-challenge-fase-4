@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cripto-prediction-api
+  labels:
+    app: cripto-prediction-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cripto-prediction-api
+  template:
+    metadata:
+      labels:
+        app: cripto-prediction-api
+    spec:
+      containers:
+      - name: cripto-prediction-api
+        image: 416759445527.dkr.ecr.us-east-1.amazonaws.com/cripto-prediction-api:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "1000m"
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: BUCKET_NAME
+          value: "criptos-data"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - name: aws-credentials
+          mountPath: /root/.aws
+          readOnly: true
+      volumes:
+      - name: aws-credentials
+        secret:
+          secretName: aws-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cripto-prediction-service
+  labels:
+    app: cripto-prediction-api
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: cripto-prediction-api 

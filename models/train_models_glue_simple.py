@@ -89,12 +89,8 @@ preprocess_linear = ColumnTransformer([
 # ---------- 4) Modelos ----------
 reg_lin = Pipeline([("prep", preprocess_linear), ("model", LinearRegression())])
 reg_gbr = Pipeline([("prep", preprocess_tree), ("model", GradientBoostingRegressor(random_state=42))])
-reg_rf  = Pipeline([("prep", preprocess_tree), ("model", RandomForestRegressor(
-    n_estimators=400, random_state=42, n_jobs=-1))])
 
 clf_log = Pipeline([("prep", preprocess_linear), ("model", LogisticRegression(max_iter=1000))])
-clf_rf  = Pipeline([("prep", preprocess_tree), ("model", RandomForestClassifier(
-    n_estimators=400, class_weight="balanced", random_state=42, n_jobs=-1))])
 
 tscv = TimeSeriesSplit(n_splits=5)
 
@@ -127,41 +123,38 @@ def eval_clf(pipe):
     return np.mean(accs), np.mean(f1s), np.mean(aucs)
 
 print("\n--- Regressão ---")
-for name, model in [("LinReg", reg_lin), ("GradBoost", reg_gbr), ("RandForest", reg_rf)]:
+for name, model in [("LinReg", reg_lin), ("GradBoost", reg_gbr)]:
     mae, rmse, mape = eval_reg(model)
     print(f"{name:<11}  MAE={mae:.3f}  RMSE={rmse:.3f}  MAPE={mape:.2f}%")
 
 print("\n--- Classificação ---")
-for name, model in [("LogReg", clf_log), ("RandForest", clf_rf)]:
+for name, model in [("LogReg", clf_log)]:
     acc, f1, auc = eval_clf(model)
     print(f"{name:<11}  ACC={acc:.3f}  F1={f1:.3f}  AUC={auc:.3f}")
 
 # ---------- 6) Treino final em todo o histórico ----------
 print("\nTreinando modelos finais...")
 final_models = {
-    "regressor_rf":  reg_rf.fit(X, y_reg),
     "regressor_gbr": reg_gbr.fit(X, y_reg),
     "regressor_lin": reg_lin.fit(X, y_reg),
-    "classifier_rf": clf_rf.fit(X, y_clf),
     "classifier_log":clf_log.fit(X, y_clf)
 }
 
 # ---------- 7) Salvando artefatos no S3 ----------
-ts = time_stamp()
 s3 = boto3.client("s3")
 
 for name, mdl in final_models.items():
     # Salva localmente primeiro
-    local_path = ARTIFACTS_DIR / f"{name}_{ts}.joblib"
+    local_path = ARTIFACTS_DIR / f"{name}.joblib"
     joblib.dump(mdl, local_path, compress=("xz", 3))
     
     # Upload para S3
-    s3_key = f"models/{name}_{ts}.joblib"
+    s3_key = f"models/{name}.joblib"
     s3.upload_file(str(local_path), BUCKET, s3_key)
     print(f"✅ Modelo salvo: {s3_key}")
 
 # Salva arquivo de controle
-latest_content = f"models/regressor_rf_{ts}.joblib\n{ts}\n5"
+latest_content = f"models/regressor_rf.joblib"
 s3.put_object(Bucket=BUCKET, Key="models/latest_models.txt", Body=latest_content)
 print(f"📋 Controle atualizado: models/latest_models.txt")
 
